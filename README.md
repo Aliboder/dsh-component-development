@@ -36,6 +36,16 @@ Copy-Item SKILL.md "$HOME\.dsh\skills\dsh-component-development\SKILL.md"
 
 重新打开 DSH 会话后，涉及界面开发时 AI 会自动加载该 skill。
 
+#### 项目级安装（优先于用户级）
+
+把 `SKILL.md` 放到项目内，可随仓库分发，且无需重启：
+
+```text
+<项目根>/.dsh/skills/dsh-component-development/SKILL.md
+```
+
+DSH 的项目级 skill（rank 100）优先于用户级（rank 400），并在下一次模型步骤自动发现。
+
 ### 2. 了解 skill 结构
 
 `SKILL.md` 只做决策与流程入口：何时使用/不用、选型决策、工作流与交付物、适配层契约、验收门禁、常见错误、停止确认条件。完整代码与逐组件说明在 `组件开发规范/`。
