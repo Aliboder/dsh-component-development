@@ -1,102 +1,115 @@
-# dsh-component-development
+# DSH 组件样式对齐 skill
 
-让 DSH Client 插件的界面与 DeepSeek Harness 官方风格对齐的一套 **skill + 可移植规范**。
+仓库：https://github.com/Aliboder/dsh-component-development
 
-- **skill**：`SKILL.md`，AI 在开发/修改 DSH 界面组件时自动加载，给出最小规则、工作流、模板与验收清单。
-- **规范**：`组件开发规范/`，完整版：核心原则、宿主加载器、适配层、10 篇组件页、测试页、几何/token、深色岛、验收、升级复核、契约 JSON、自检脚本与可直接复制的模板。
+让 DSH Client 插件的界面和 DeepSeek Harness 官方界面看起来是同一套东西：控件直接用宿主原语，颜色/圆角/阴影只用官方 token，几何按官方规范，交付前有可执行的检查。
 
-对齐基线：**DSH 0.2.2-rc.5**（宿主原语与 CSS 均来自该版本实际产物）。
+## 它解决什么
 
-当前版本：**1.2.0**。
+插件（尤其由 AI 写的插件）经常自己画按钮、开关、弹窗：颜色写死、圆角随意、发丝线 1px、深色主题白底白字，和同屏官方控件放在一起很明显。
 
-## 它解决什么问题
+这个 skill 把“对齐”拆成三件可执行的事：
 
-DSH 的控件由宿主渲染，插件拿不到宿主 CSS module，只能靠同一组 props + 同一组 token 复刻。没有规范时会出现：
+1. **控件来自宿主**：`@deepseek-ai/dsh-client-ui-primitives` 是 Web 外壳的基座模块，插件直接 `require` 即可，不需要自己实现一份。
+2. **样式来自 token**：颜色、圆角、阴影、字号只读 `--dsw-*`；不发明白色/十六进制，不写主题分支。
+3. **结果可验证**：`scripts/check-ui.mjs` 扫硬编码与违规写法，`templates/gallery.js` 提供组件测试页，按浅色/深色/键盘/状态逐项看。
 
-- 宿主可用却自绘控件，外观「差一点」；
-- fallback 只把颜色调像，布局/键盘/aria 不一致；
-- 深色面板在浅色主题下开关变成白底白滑块；
-- 浮层表面跟宿主 token、文字却继承深色页面硬编码白色，变成白底白字；
-- 每次升级 DSH 都要重新猜宿主签名。
+## 和官方文档的关系
 
-这套规范把上述问题拆成可执行规则：宿主优先、fallback 五维等价、组件测试页唯一标准、token 优先、表面与文字同源、深色岛固定 token、唯一加载入口。
+官方文档（`web-styling`、`ui-radius`、`ui-design-review-cases`、`ui-primitives README`）是**规范所有者**；本 skill 不重写它们，而是：
 
-## 使用方式
+- 把第三方插件作者最需要的部分压缩成决策规则与可复制代码；
+- 补上官方文档没覆盖的第三方场景：模块基座加载、内容固定配色、gallery、静态检查、升级复核；
+- 明确版本基线，升级时按 `references/06-upgrade.md` 复核。
 
-### 1. 安装 skill
+## 安装
 
-```text
-# macOS / Linux
-mkdir -p ~/.dsh/skills/dsh-component-development
-cp SKILL.md ~/.dsh/skills/dsh-component-development/SKILL.md
-
-# Windows (PowerShell)
-New-Item -ItemType Directory -Force "$HOME\.dsh\skills\dsh-component-development" | Out-Null
-Copy-Item SKILL.md "$HOME\.dsh\skills\dsh-component-development\SKILL.md"
-```
-
-重新打开 DSH 会话后，涉及界面开发时 AI 会自动加载该 skill。
-
-#### 项目级安装（优先于用户级）
-
-把 `SKILL.md` 放到项目内，可随仓库分发，且无需重启：
+把整个仓库目录放到 DSH 会扫描的 skill 根目录之一：
 
 ```text
-<项目根>/.dsh/skills/dsh-component-development/SKILL.md
+<项目>/.dsh/skills/dsh-official-ui/       项目级，优先级最高
+<项目>/.agents/skills/dsh-official-ui/     项目级（跨工具）
+~/.dsh/skills/dsh-official-ui/            用户级
 ```
 
-DSH 的项目级 skill（rank 100）优先于用户级（rank 400），并在下一次模型步骤自动发现。
+Windows 示例：
 
-### 2. 了解 skill 结构
+```powershell
+Copy-Item -Recurse .\* "$env:USERPROFILE\.dsh\skills\dsh-official-ui"
+```
 
-`SKILL.md` 只做决策与流程入口：何时使用/不用、选型决策、工作流与交付物、适配层契约、验收门禁、常见错误、停止确认条件。完整代码与逐组件说明在 `组件开发规范/`。
-
-### 3. 使用规范
-
-把 `组件开发规范/` 整个拷进你的插件仓库（例如 `A_other/组件开发规范/`），让 AI 按 `组件开发规范/README.md` 的阅读顺序执行。
-
-### 4. 自检
+macOS / Linux：
 
 ```bash
-node 组件开发规范/脚本/check-kit.mjs
+mkdir -p ~/.dsh/skills/dsh-official-ui
+cp -R . ~/.dsh/skills/dsh-official-ui/
 ```
 
-检查相对链接、契约 JSON、每个组件是否有文档、CSS 是否写死颜色、几何常量是否齐全、是否混入具体插件专用词。
+DSH 会在下一次模型步骤自动发现，无需重启。
 
-## 仓库结构
+## 使用
+
+- 正常说需求即可：`给插件加一个设置页`、`这个弹窗和 DSH 风格不一致`。
+- 需要强制加载时：让 AI 加载 `dsh-official-ui` skill。
+- 交付前让 AI 跑：`node scripts/check-ui.mjs`。
+
+## 内容
+
+| 路径 | 作用 |
+|---|---|
+| `SKILL.md` | 入口：触发、五条硬规则、工作流、选型、高频坑、门禁 |
+| `references/00-official-docs.md` | 官方文档入口与阅读顺序 |
+| `references/01-primitives.md` | 原语加载、导出目录、核心 props、组合、图标 |
+| `references/02-tokens.md` | token 分层、明暗、材质、发丝线、例外 |
+| `references/03-geometry.md` | 圆角/尺寸/间距/对齐/字重 |
+| `references/04-gallery.md` | 组件测试页协议 |
+| `references/05-review.md` | 评审清单与常见失败 |
+| `references/06-upgrade.md` | DSH 升级后的复核 |
+| `references/07-catalog.md` | 完整导出清单（115 + 214）、覆盖矩阵 |
+| `templates/gallery.js` | 可挂载的测试页 |
+| `templates/settings-section.js` | 设置卡片/行的标准组合 |
+| `scripts/check-ui.mjs` | 扫描插件源码的静态检查 |
+
+## 检查范围
+
+默认扫描 `src/client`（没有则 `src`，再没有则当前目录）。历史大仓先限定范围：
+
+```bash
+node scripts/check-ui.mjs --root src/client/settings
+node scripts/check-ui.mjs --ignore "styles/theme.js"
+```
+
+或在项目根写 `.dsh-ui-check.json`：
+
+```json
+{ "ignore": ["styles/theme.js"], "contentFixed": ["styles/art/**"] }
+```
+
+## 自检
+
+改这个 skill 本身时跑：
+
+```bash
+node test/check-ui.test.mjs
+node scripts/check-ui.mjs --root templates
+```
+
+## 版本基线
 
 ```text
-├─ SKILL.md                        DSH skill（AI 入口）
-└─ 组件开发规范/
-   ├─ README.md                    阅读顺序 + 接入步骤 + 给 AI 的开场指令
-   ├─ 01-核心原则.md
-   ├─ 02-宿主组件加载.md
-   ├─ 03-适配层规范.md
-   ├─ 04-组件/                     10 篇：签名 → 适配层 → 调用 → CSS → 坑
-   ├─ 05-组件测试页.md
-   ├─ 06-样式与Token.md
-   ├─ 07-深色岛.md
-   ├─ 08-验收清单.md
-   ├─ 09-升级复核.md
-   ├─ 参考/                        0.2.2-rc.5 宿主签名与关键 CSS 实测
-   ├─ 模板/                        host-ui.js / primitives / gallery / theme.css
-   ├─ 契约/                        components.json / geometry.json
-   └─ 脚本/check-kit.mjs
+skill        0.1.0
+核对 DSH     0.2.3-alpha.2（Windows Desktop）
+核对日期     2026-11-24
 ```
 
-## 六个核心原则
+原语列表与 props 按该版本核对；token 以已安装主题包 `src/styles/*.css` 为准。DSH 升级后先读 `references/06-upgrade.md`。
 
-1. 宿主优先：`hostComponent('X') !== null` 时必须用宿主组件。
-2. fallback 等价：props、DOM/aria、几何、交互、颜色五个维度一致。
-3. 测试页唯一标准：先在组件测试页立用例，再写业务。
-4. token 优先：颜色/圆角/阴影/焦点环只用 `--dsw-*`。
-5. 深色岛固定 token：用 `--dsw-static-*`，不要手写近似色。
-6. 唯一加载入口：全插件只有一处 `require('@deepseek-ai/dsh-client-ui-primitives')`。
+## 边界
 
-## 更新与复核
-
-DSH 升级后按 `组件开发规范/09-升级复核.md` 从安装包重新读宿主签名与 CSS，更新 `参考/`、`契约/` 与版本号，再改测试页与 fallback。
+- 不修改 DSH 宿主，不新增官方 token 或新的视觉语言。
+- 不提供通用 UI 组件库；只负责“和宿主一致”。
+- 不替插件作者写业务逻辑。
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。
+MIT。文中引用的 DSH 文档与组件归其各自所有者。

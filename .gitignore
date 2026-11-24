@@ -1,0 +1,5 @@
+.dsh/
+node_modules/
+dist/
+build/
+*.log
